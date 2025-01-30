@@ -1,0 +1,15 @@
+[package]
+name = "marhta"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "marhta"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.20.0", features = ["extension-module"] }
+unicode-segmentation = "1.10"
+
+[dev-dependencies]
+approx = "0.5.1"
