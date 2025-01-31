@@ -4,7 +4,9 @@ from hypothesis import settings
 from hypothesis import strategies as st
 
 from .fixtures import WORDS
-from .fixtures import jaro_winkler_similarity as fx_jaro_winkler_similarity
+from .fixtures import jaro_winkler_distance
+from .fixtures import jaro_winkler_match
+from .fixtures import jaro_winkler_similarity
 
 
 @given(
@@ -15,7 +17,7 @@ from .fixtures import jaro_winkler_similarity as fx_jaro_winkler_similarity
 )
 @settings(max_examples=1000)
 def test_jaro_winkler_similarity_with_sane_parameters(s1, s2, prefix_weight, max_prefix):
-    expected = fx_jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
+    expected = jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
     result = marhta.jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
     assert 0 <= result <= 1
     assert result == expected
@@ -32,7 +34,7 @@ def test_jaro_winkler_similarity_with_sane_parameters(s1, s2, prefix_weight, max
 def test_jaro_winkler_similarity_sanity(prefix, s1, s2, prefix_weight, max_prefix):
     s1 = prefix + s1
     s2 = prefix + s2
-    expected = fx_jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
+    expected = jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
     result = marhta.jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
     assert 0 <= result <= 1
     assert result == expected
@@ -49,7 +51,7 @@ def test_jaro_winkler_similarity_sanity(prefix, s1, s2, prefix_weight, max_prefi
 def test_jaro_winkler_distance_sanity(prefix, s1, s2, prefix_weight, max_prefix):
     s1 = prefix + s1
     s2 = prefix + s2
-    expected = 1 - fx_jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
+    expected = jaro_winkler_distance(s1, s2, prefix_weight, max_prefix)
     result = marhta.jaro_winkler_distance(s1, s2, prefix_weight, max_prefix)
     assert 0 <= result <= 1
     assert result == expected
@@ -68,14 +70,7 @@ def test_jaro_winkler_distance_sanity(prefix, s1, s2, prefix_weight, max_prefix)
 @settings(max_examples=1000)
 def test_jaro_winkler_match_sanity(pattern, strings, min_max, limit, prefix_weight, max_prefix):
     min, max = min_max
-    expected = [
-        (s, marhta.jaro_winkler_similarity(pattern, s, prefix_weight, max_prefix)) for s in strings
-    ]
-    # Sort by score descending, then by string lexicographically
-    expected = sorted(expected, key=lambda x: (-x[1], x[0]))
-    expected = [x for x in expected if min <= x[1] <= max]
-    expected = expected[:limit]
-
+    expected = jaro_winkler_match(pattern, strings, min, max, limit, prefix_weight, max_prefix)
     result = marhta.jaro_winkler_match(
         pattern, strings, min, max, limit, prefix_weight, max_prefix
     )

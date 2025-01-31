@@ -66,44 +66,109 @@ def jaro_winkler_similarity(s1, s2, p=0.1, max_prefix=4):
     return min(1.0, result)
 
 
-def levenshtein_distance(s1, s2):
+def levenshtein_distance(s1, s2, cutoff=None):
     if len(s1) < len(s2):
-        return levenshtein_distance(s2, s1)
+        return levenshtein_distance(s2, s1, cutoff)
 
     # len(s1) >= len(s2)
     if len(s2) == 0:
-        return len(s1)
+        return len(s1) if cutoff is None else min(len(s1), cutoff + 1)
 
-    previous_row = range(len(s2) + 1)
+    # Quick check if absolute length difference exceeds cutoff
+    if cutoff is not None and abs(len(s1) - len(s2)) > cutoff:
+        return cutoff + 1
+
+    previous_row = list(range(len(s2) + 1))
     for i, c1 in enumerate(s1):
         current_row = [i + 1]
+        min_dist = current_row[0]
+
         for j, c2 in enumerate(s2):
-            insertions = (
-                previous_row[j + 1] + 1
-            )  # j+1 instead of j since previous_row and current_row are one character longer
-            deletions = current_row[j] + 1  # than s2
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
             substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
+            current = min(insertions, deletions, substitutions)
+            current_row.append(current)
+            min_dist = min(min_dist, current)
+
+        # Early stopping check
+        if cutoff is not None and min_dist > cutoff:
+            return cutoff + 1
+
         previous_row = current_row
 
-    result = previous_row[-1]
-    assert 0 <= result
-    return result
+    # Return minimum of final distance and cutoff + 1 if cutoff exists
+    return previous_row[-1] if cutoff is None else min(previous_row[-1], cutoff + 1)
+
+
+def levenshtein_similarity(s1, s2, cutoff=None):
+    max_len = max(len(s1), len(s2))
+    if max_len == 0:
+        return 1.0
+
+    # Convert similarity cutoff to distance cutoff
+    if cutoff is not None:
+        distance_cutoff = int((1.0 - cutoff) * max_len + 0.999999)
+    else:
+        distance_cutoff = None
+
+    distance = levenshtein_distance(s1, s2, distance_cutoff)
+    return 1.0 - (distance / max_len)
+
+
+def levenshtein_match(pattern, strings, min=0.0, max=1.0, limit=5):
+    matches = []
+    for s in strings:
+        # Use min as cutoff for early stopping
+        score = levenshtein_similarity(pattern, s, min)
+        if min <= score <= max:
+            matches.append((s, score))
+
+    # Sort by score descending, then by string lexicographically
+    matches.sort(key=lambda x: (-x[1], x[0]))
+    return matches[:limit]
+
+
+def jaro_winkler_distance(s1, s2, prefix_weight=0.1, max_prefix=4):
+    return 1.0 - jaro_winkler_similarity(s1, s2, prefix_weight, max_prefix)
+
+
+def jaro_winkler_match(
+    pattern, strings, min=0.0, max=1.0, limit=5, prefix_weight=0.1, max_prefix=4
+):
+    matches = []
+    for s in strings:
+        score = jaro_winkler_similarity(pattern, s, prefix_weight, max_prefix)
+        if min <= score <= max:
+            matches.append((s, score))
+
+    # Sort by score descending, then by string lexicographically
+    matches.sort(key=lambda x: (-x[1], x[0]))
+    return matches[:limit]
 
 
 def sanity_check():
+    # Levenshtein tests
     assert levenshtein_distance("a", "a") == 0
     assert levenshtein_distance("a", "b") == 1
     assert levenshtein_distance("MARTHA", "MARTHA") == 0
     assert levenshtein_distance("MARTHA", "MARHTA") == 2
+    assert levenshtein_similarity("kitten", "sitting") == 1.0 - 3 / 7
+    assert levenshtein_match("kitten", ["kitten", "sitting"], min=0.5)[0][0] == "kitten"
 
+    # Early stopping tests
+    assert levenshtein_distance("abcd", "defg", 2) == 3
+    assert levenshtein_similarity("abcd", "defg", 0.9) < 0.9
+
+    # Jaro-Winkler tests
     assert jaro("a", "a") == 1.0
     assert jaro("a", "b") == 0.0
     assert jaro_winkler_similarity("MARTHA", "MARTHA") == 1.0
     assert jaro_winkler_similarity("MARTHA", "MARHTA") == 0.9611111111111111
-    assert jaro_winkler_similarity("gloater", "biometrical") == 0.5616883116883117, (
-        jaro_winkler_similarity("gloater", "biometrical")
-    )
+    assert jaro_winkler_similarity("gloater", "biometrical") == 0.5616883116883117
+
+    # Test clamping to 1.0
+    assert jaro_winkler_similarity("0000", "00000", 0.25, 5) == 1.0
 
 
 sanity_check()
