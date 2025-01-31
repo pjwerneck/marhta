@@ -10,9 +10,10 @@ fn _matching_characters(a: &str, b: &str, max_distance: usize) -> (usize, usize)
     let mut matches = 0;
     let mut transpositions = 0;
     let mut b_matches = vec![false; b_chars.len()];
-    let mut match_indexes = Vec::new();
+    let mut a_matches = Vec::new();
+    let mut b_match_indexes = Vec::new();
 
-    // Find matches
+    // Find matches within match distance
     for (i, &a_char) in a_chars.iter().enumerate() {
         let start = if i > max_distance {
             i - max_distance
@@ -25,22 +26,28 @@ fn _matching_characters(a: &str, b: &str, max_distance: usize) -> (usize, usize)
             if !b_matches[j] && a_char == b_chars[j] {
                 b_matches[j] = true;
                 matches += 1;
-                match_indexes.push((i, j));
+                a_matches.push(i);
+                b_match_indexes.push(j);
                 break;
             }
         }
     }
 
-    // Count transpositions (only counting half as they're counted twice)
-    for i in 0..match_indexes.len() {
-        for j in i + 1..match_indexes.len() {
-            if match_indexes[i].1 > match_indexes[j].1 {
-                transpositions += 1;
-            }
+    if matches == 0 {
+        return (0, 0);
+    }
+
+    // Count transpositions
+    a_matches.sort_unstable();
+    b_match_indexes.sort_unstable();
+
+    for (a_pos, b_pos) in a_matches.iter().zip(b_match_indexes.iter()) {
+        if a_chars[*a_pos] != b_chars[*b_pos] {
+            transpositions += 1;
         }
     }
 
-    (matches, transpositions) // No need to double transpositions anymore
+    (matches, transpositions)
 }
 
 fn _jaro_winkler_similarity(s1: &str, s2: &str, prefix_weight: f64, max_prefix: usize) -> f64 {
@@ -63,12 +70,13 @@ fn _jaro_winkler_similarity(s1: &str, s2: &str, prefix_weight: f64, max_prefix: 
     }
 
     let m = matches as f64;
-    let t = transpositions as f64; // Already in correct form from _matching_characters
+    let t = transpositions as f64;
     let s1_len = s1.chars().count() as f64;
     let s2_len = s2.chars().count() as f64;
 
-    // Calculate basic Jaro similarity
-    let jaro = (m / s1_len + m / s2_len + (m - t) / m) / 3.0;
+    // Calculate basic Jaro similarity - key change here:
+    // We need to divide transpositions by 2 in the formula, not before
+    let jaro = (m / s1_len + m / s2_len + (m - t / 2.0) / m) / 3.0;
 
     // Calculate common prefix length with configurable limit
     let l = s1
@@ -78,8 +86,8 @@ fn _jaro_winkler_similarity(s1: &str, s2: &str, prefix_weight: f64, max_prefix: 
         .take_while(|(a, b)| a == b)
         .count() as f64;
 
-    // Apply Winkler modification
-    jaro + (l * prefix_weight * (1.0 - jaro))
+    // Apply Winkler modification and clamp to [0, 1]
+    (jaro + (l * prefix_weight * (1.0 - jaro))).min(1.0)
 }
 
 fn _jaro_winkler_distance(s1: &str, s2: &str, prefix_weight: f64, max_prefix: usize) -> f64 {
@@ -268,7 +276,7 @@ mod tests {
         );
         assert_relative_eq!(
             _jaro_winkler_similarity("saturday", "sunday", 0.1, 4),
-            0.7175,
+            0.7475,
             epsilon = 0.001
         );
         assert_eq!(_jaro_winkler_similarity("", "", 0.1, 4), 1.0);
@@ -352,6 +360,16 @@ mod tests {
         assert_relative_eq!(
             _jaro_winkler_similarity("prefix", "prefixx", 0.1, 6),
             0.980,
+            epsilon = 0.001
+        );
+    }
+
+    #[test]
+    fn test_jaro_winkler_clamping() {
+        // This case would return > 1.0 without clamping
+        assert_relative_eq!(
+            _jaro_winkler_similarity("0000", "00000", 0.25, 5),
+            1.0,
             epsilon = 0.001
         );
     }

@@ -24,3 +24,21 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/pjwerneck/marhta"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.113.0",
+    "pytest>=8.3.4",
+]
+
+[tool.ruff]
+exclude = [".git", ".venv"]
+line-length = 99
+target-version = "py312"
+extend-exclude = ["neuropad/core/**"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+force-single-line = true
