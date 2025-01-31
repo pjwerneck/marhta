@@ -1,10 +1,10 @@
 /// String similarity and fuzzy matching algorithms for Python
-/// 
+///
 /// This module provides implementations of common string similarity algorithms:
-/// 
+///
 /// * Levenshtein distance and similarity measures
 /// * Jaro-Winkler distance and similarity measures
-/// 
+///
 /// Each algorithm provides distance, similarity, and fuzzy matching capabilities.
 use pyo3::prelude::*;
 
