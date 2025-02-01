@@ -28,6 +28,7 @@ Repository = "https://github.com/pjwerneck/marhta"
 [dependency-groups]
 dev = [
     "hypothesis>=6.113.0",
+    "maturin>=1.8.1",
     "pytest>=8.3.4",
 ]
 
@@ -42,3 +43,13 @@ docstring-code-format = true
 
 [tool.ruff.lint.isort]
 force-single-line = true
+
+[tool.maturin]
+# ...existing config...
+
+[tool.poetry]
+# ...existing config...
+include = ["py.typed", "*.pyi"]
+
+[tool.poetry.package-data]
+marhta = ["py.typed", "*.pyi"]

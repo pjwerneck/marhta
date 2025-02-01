@@ -28,6 +28,12 @@ def run_parallel(func, args, n_threads=10):
     return time.perf_counter_ns() - start
 
 
+# We run the tests in sequence and in parallel to check if the GIL is released.
+# If the GIL is released, the parallel tests should be faster than the
+# sequential ones. If the GIL is not released, the parallel tests should be
+# slower than the sequential ones.
+
+
 def test_levenshtein_gil_release():
     # Short strings should not release GIL (parallel slower)
     seq_time = run_sequential(marhta.levenshtein_distance, ("short", "string"))
