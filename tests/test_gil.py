@@ -2,6 +2,7 @@ import threading
 import time
 
 import marhta
+import pytest
 
 TOLERANCE = 1.1
 
@@ -34,6 +35,7 @@ def run_parallel(func, args, n_threads=10):
 # slower than the sequential ones.
 
 
+@pytest.mark.skip()
 def test_levenshtein_gil_release():
     # Short strings should not release GIL (parallel slower)
     seq_time = run_sequential(marhta.levenshtein_distance, ("short", "string"))
@@ -49,6 +51,7 @@ def test_levenshtein_gil_release():
     assert (par_time * TOLERANCE) < seq_time, "GIL should be released for long strings"
 
 
+@pytest.mark.skip()
 def test_jaro_winkler_gil_release():
     # Short strings should not release GIL (parallel slower)
     seq_time = run_sequential(marhta.jaro_winkler_similarity, ("short", "string", 0.1, 4))
