@@ -1,9 +1,28 @@
+import threading
+import time
 from pathlib import Path
 
 HERE = Path(__file__).parent
 
 with open(HERE / "words.txt") as f:
     WORDS = f.read().splitlines()
+
+
+def check_gil_released(func):
+    """Check if the GIL is released during function execution"""
+    gil_acquired = False
+
+    def gil_check():
+        nonlocal gil_acquired
+        time.sleep(0.01)  # Give main operation time to start
+        gil_acquired = True
+
+    thread = threading.Thread(target=gil_check)
+    thread.start()
+    func()
+    thread.join()
+    return gil_acquired
+
 
 # These are reference implementations of the algorithms, verified against a
 # third-party implementation. They are used to generate test cases for the

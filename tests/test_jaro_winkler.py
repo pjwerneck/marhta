@@ -1,4 +1,5 @@
 import marhta
+import pytest
 from hypothesis import given
 from hypothesis import settings
 from hypothesis import strategies as st
