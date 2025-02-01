@@ -42,7 +42,7 @@ jobs:
       run: uv sync --all-extras --dev
 
     - name: Build and install package
-      run: maturin develop --uv
+      run: maturin develop --uv --release
 
     - name: Run pytest
       run: pytest
