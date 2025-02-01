@@ -3,7 +3,7 @@ import time
 
 import marhta
 
-TOLERANCE = 2
+TOLERANCE = 1.1
 
 
 def run_sequential(func, args, n_times=10):
